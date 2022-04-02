@@ -1,0 +1,65 @@
+project_name: outside-in-go
+
+containers:
+  golang:
+    image: golang:1.18.0
+    run_as_current_user:
+      enabled: true
+      home_directory: /home/container-user
+    volumes:
+      - local: .
+        container: /app
+        options: cached
+      - type: cache
+        name: go-cache
+        container: /home/container-user/go
+    environment:
+      GOCACHE: /home/container-user/go
+    working_directory: /app
+
+  mock-aws:
+    build_directory: .batect/mock-aws
+    run_as_current_user:
+      enabled: true
+      home_directory: /home/container-user
+    setup_commands:
+      - command: /scripts/setup.sh
+    volumes:
+      - local: ./tmp
+        container: /app/tmp
+    environment:
+      AWS_REGION: us-west-2
+      AWS_SHARED_CREDENTIALS_FILE: /app/tmp/test-user-credentials
+      AWS_ACCESS_KEY_ID: x
+      AWS_SECRET_ACCESS_KEY: y
+
+  app:
+    build_directory: .
+    environment:
+      S3_ENDPOINT: http://mock-aws:5000
+
+tasks:
+  unit-test:
+    description: Run unit test
+    run:
+      container: golang
+      command: go test -v -tags="unit" ./...
+
+  integration-test:
+    description: Run integration test
+    run:
+      container: golang
+      command: go test -v -tags="integration" ./...
+
+  e2e-test:
+    description: Run e2e test
+    dependencies:
+      - mock-aws
+      - app
+    run:
+      container: golang
+      command: go test -v -tags="e2e" ./...
+      environment:
+        S3_ENDPOINT: http://mock-aws:5000
+        API_URL: http://app:3333
+        AWS_SHARED_CREDENTIALS_FILE: /app/tmp/test-user-credentials
