@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	reportsSingleRoutePattern = "/reports/single"
+	reportsSingleRoutePattern     = "/reports/single"
+	reportsCumulativeRoutePattern = "/reports/cumulative"
 )
 
 type ErrorResponse struct {
@@ -24,6 +25,7 @@ func RegisterReportsRoutes(router *chi.Mux, generator report.Generator) {
 		generator: generator,
 	}
 	router.Get(reportsSingleRoutePattern, h.Single)
+	router.Get(reportsCumulativeRoutePattern, h.Cumulative)
 }
 
 type reportsHandler struct {
@@ -48,10 +50,28 @@ func (h *reportsHandler) Single(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=single-%d%02d.csv", *year, *month))
-	w.Write(data)
+	h.csvResponse(w, year, month, data)
+}
+
+func (h *reportsHandler) Cumulative(w http.ResponseWriter, r *http.Request) {
+	yearParam := r.URL.Query().Get("year")
+	monthParam := r.URL.Query().Get("month")
+
+	year, month, err := h.parseYearAndMonth(yearParam, monthParam)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		h.errorResponse(w, err.Error())
+		return
+	}
+
+	data, err := h.generator.GenerateCumulative(*year, *month)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.errorResponse(w, err.Error())
+		return
+	}
+
+	h.csvResponse(w, year, month, data)
 }
 
 func (h *reportsHandler) parseYearAndMonth(yearParam string, monthParam string) (*int, *int, error) {
@@ -92,4 +112,11 @@ func (h *reportsHandler) errorResponse(w http.ResponseWriter, message string) er
 	return json.NewEncoder(w).Encode(ErrorResponse{
 		Message: message,
 	})
+}
+
+func (h *reportsHandler) csvResponse(w http.ResponseWriter, year *int, month *int, data []byte) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=single-%d%02d.csv", *year, *month))
+	w.Write(data)
 }
