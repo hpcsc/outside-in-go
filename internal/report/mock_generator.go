@@ -1,6 +1,9 @@
 package report
 
-import "github.com/stretchr/testify/mock"
+import (
+	"github.com/stretchr/testify/mock"
+	"testing"
+)
 
 var _ Generator = &mockGenerator{}
 
@@ -23,4 +26,8 @@ func (m *mockGenerator) GenerateSingle(year int, month int) ([]byte, error) {
 
 func (m *mockGenerator) StubGenerateSingle() *mock.Call {
 	return m.On("GenerateSingle", mock.Anything, mock.Anything)
+}
+
+func (m *mockGenerator) AssertGenerateSingleCalled(t *testing.T, year int, month int) {
+	m.AssertCalled(t, "GenerateSingle", year, month)
 }
