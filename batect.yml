@@ -39,8 +39,11 @@ containers:
 
   app:
     build_directory: .
+    dependencies:
+      - mock-aws
     environment:
       S3_ENDPOINT: http://mock-aws:5000
+      BUCKET: outside-in-go
 
 tasks:
   unit-test:
@@ -58,7 +61,6 @@ tasks:
   e2e-test:
     description: Run e2e test
     dependencies:
-      - mock-aws
       - app
     run:
       container: golang
@@ -66,4 +68,5 @@ tasks:
       environment:
         S3_ENDPOINT: http://mock-aws:5000
         API_URL: http://app:3333
+        BUCKET: outside-in-go
         AWS_SHARED_CREDENTIALS_FILE: /secrets/test-user-credentials
