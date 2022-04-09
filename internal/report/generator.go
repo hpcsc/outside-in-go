@@ -1,4 +1,5 @@
 package report
 
 type Generator interface {
+	GenerateSingle(year int, month int) ([]byte, error)
 }
