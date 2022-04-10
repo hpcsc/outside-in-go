@@ -21,7 +21,15 @@ type csvGenerator struct {
 }
 
 func (g *csvGenerator) GenerateSingle(year int, month int) ([]byte, error) {
-	existingAggregated, err := g.storer.RetrieveAggregated(storer.SingleReportType, year, month)
+	return g.generate(storer.SingleReportType, year, month)
+}
+
+func (g *csvGenerator) GenerateCumulative(year int, month int) ([]byte, error) {
+	return g.generate(storer.CumulativeReportType, year, month)
+}
+
+func (g *csvGenerator) generate(reportType storer.ReportType, year int, month int) ([]byte, error) {
+	existingAggregated, err := g.storer.RetrieveAggregated(reportType, year, month)
 	if err != nil {
 		log.Printf("failed to retrieved existing aggregate: %v", err)
 		// continue with aggregate logic
@@ -29,7 +37,7 @@ func (g *csvGenerator) GenerateSingle(year int, month int) ([]byte, error) {
 		return existingAggregated, nil
 	}
 
-	files, err := g.storer.RetrieveIndividualFiles(storer.SingleReportType, year, month)
+	files, err := g.storer.RetrieveIndividualFiles(reportType, year, month)
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +67,9 @@ func (g *csvGenerator) GenerateSingle(year int, month int) ([]byte, error) {
 		return nil, fmt.Errorf("failed to write csv content to buffer: %v", err)
 	}
 
-	if err := g.storer.StoreAggregated(storer.SingleReportType, year, month, aggregated.Bytes()); err != nil {
+	if err := g.storer.StoreAggregated(reportType, year, month, aggregated.Bytes()); err != nil {
 		return nil, err
 	}
 
 	return aggregated.Bytes(), nil
-}
-
-func (g *csvGenerator) GenerateCumulative(year int, month int) ([]byte, error) {
-	return nil, nil
 }
