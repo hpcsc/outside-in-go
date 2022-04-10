@@ -13,6 +13,9 @@ containers:
       - type: cache
         name: go-cache
         container: /home/container-user/go
+      - type: cache
+        name: secrets
+        container: /secrets
     environment:
       GOCACHE: /home/container-user/go
     working_directory: /app
@@ -25,13 +28,14 @@ containers:
     setup_commands:
       - command: /scripts/setup.sh
     volumes:
-      - local: ./tmp
-        container: /app/tmp
+      - type: cache
+        name: secrets
+        container: /secrets
     environment:
       AWS_REGION: us-west-2
-      AWS_SHARED_CREDENTIALS_FILE: /app/tmp/test-user-credentials
       AWS_ACCESS_KEY_ID: x
       AWS_SECRET_ACCESS_KEY: y
+      AWS_SHARED_CREDENTIALS_FILE: /secrets/test-user-credentials
 
   app:
     build_directory: .
@@ -62,4 +66,4 @@ tasks:
       environment:
         S3_ENDPOINT: http://mock-aws:5000
         API_URL: http://app:3333
-        AWS_SHARED_CREDENTIALS_FILE: /app/tmp/test-user-credentials
+        AWS_SHARED_CREDENTIALS_FILE: /secrets/test-user-credentials
