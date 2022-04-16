@@ -1,6 +1,7 @@
 package storer
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -88,8 +89,17 @@ func (s *s3Storer) RetrieveAggregated(reportType ReportType, year int, month int
 }
 
 func (s *s3Storer) StoreAggregated(reportType ReportType, year int, month int, data []byte) error {
-	//TODO implement me
-	panic("implement me")
+	key := fmt.Sprintf("%d/%02d/aggregate/%s.csv", year, month, reportType)
+	if _, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String("text/csv"),
+	}); err != nil {
+		return fmt.Errorf("failed to write object at %s: %v", key, err)
+	}
+
+	return nil
 }
 
 func s3Config(endpoint string) (aws.Config, error) {

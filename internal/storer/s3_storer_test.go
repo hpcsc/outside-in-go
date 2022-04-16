@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -100,6 +101,32 @@ func TestS3Storer_RetrieveAggregated(t *testing.T) {
 		require.NoError(t, err)
 		expected := fmt.Sprintf("BUCKET,PATH\n%s,2022/04/aggregate/single.csv", bucket)
 		require.Equal(t, []byte(expected), data)
+	})
+}
+
+func TestS3Storer_StoreAggregated(t *testing.T) {
+	t.Run("store aggregated file at correct location", func(t *testing.T) {
+		s3Endpoint := os.Getenv("S3_ENDPOINT")
+		bucket := randomName("bucket")
+
+		client := s3ClientToMockAws(t, s3Endpoint)
+		newEncryptedS3Bucket(t, client, bucket)
+
+		s, err := NewS3Storer(s3Endpoint, bucket)
+		require.NoError(t, err)
+
+		data := []byte("some,csv,content")
+		err = s.StoreAggregated(SingleReportType, 2022, 4, data)
+
+		require.NoError(t, err)
+		getOutput, err := client.GetObject(context.TODO(), &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String("2022/04/aggregate/single.csv"),
+		})
+		require.NoError(t, err)
+		actualData, err := ioutil.ReadAll(getOutput.Body)
+		require.NoError(t, err)
+		require.Equal(t, data, actualData)
 	})
 }
 
