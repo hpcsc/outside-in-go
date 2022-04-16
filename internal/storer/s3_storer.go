@@ -2,10 +2,12 @@ package storer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io/ioutil"
 )
 
@@ -62,8 +64,27 @@ func (s *s3Storer) RetrieveIndividualFiles(reportType ReportType, year int, mont
 }
 
 func (s *s3Storer) RetrieveAggregated(reportType ReportType, year int, month int) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	key := fmt.Sprintf("%d/%02d/aggregate/%s.csv", year, month, reportType)
+	getOutput, err := s.client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		var noSuchKeyErr *types.NoSuchKey
+		if errors.As(err, &noSuchKeyErr) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("failed to get object at %s: %v", key, err)
+	}
+
+	body, err := ioutil.ReadAll(getOutput.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read object content at %s: %v", key, err)
+	}
+
+	return body, nil
 }
 
 func (s *s3Storer) StoreAggregated(reportType ReportType, year int, month int, data []byte) error {
