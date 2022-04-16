@@ -41,9 +41,15 @@ containers:
     build_directory: .
     dependencies:
       - mock-aws
+    volumes:
+      - type: cache
+        name: secrets
+        container: /secrets
     environment:
       S3_ENDPOINT: http://mock-aws:5000
+      PORT: 3333
       BUCKET: outside-in-go
+      AWS_SHARED_CREDENTIALS_FILE: /secrets/test-user-credentials
 
 tasks:
   unit-test:
