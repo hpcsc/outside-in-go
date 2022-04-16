@@ -54,9 +54,14 @@ tasks:
 
   integration-test:
     description: Run integration test
+    dependencies:
+      - mock-aws
     run:
       container: golang
       command: go test -v -tags="integration" ./...
+      environment:
+        S3_ENDPOINT: http://mock-aws:5000
+        AWS_SHARED_CREDENTIALS_FILE: /secrets/test-user-credentials
 
   e2e-test:
     description: Run e2e test
